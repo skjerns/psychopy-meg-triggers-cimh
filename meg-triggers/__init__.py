@@ -11,6 +11,7 @@ from psychopy.experiment.components import BaseComponent, Param, _translate, get
 from psychopy.localization import _localized as __localized
 from psychopy import logging
 import uuid
+import types
 
 def log(*args):
     logging.error(' '.join([str(x) for x in args]))
@@ -18,8 +19,6 @@ def log(*args):
 class MegTriggerComponent(BaseComponent):
     """Send Trigger via NI-6321, a PCIe card, using PyDAQmx."""
 
-    written_end_code = False
-    written_init_code = False
     categories = ['I/O', 'EEG']
     targets = ['PsychoPy']
     version = "2022.2.0"
@@ -69,7 +68,7 @@ class MegTriggerComponent(BaseComponent):
             hint=_translate("Will print triggers to console for ANY trigger"),
             label=_translate("Enable global debug printing"))
 
-    def writeBlockCode(self, buff, code):
+    def writeBlockCode(self, buff, code, writefunc=None):
         assert code.startswith('\n'), 'Code needs to start with newline'
         code = code.split('\n')
         assert len(code[1].strip())>0, 'Code needs to be on second line'
@@ -80,7 +79,9 @@ class MegTriggerComponent(BaseComponent):
 
         code = [c[base_indent:] for c in code]
         code = '\n'.join(code)
-        buff.writeIndented(code)
+        if writefunc is not None:
+            return writefunc(code)
+        return buff.writeIndented(code)
 
     def writeInitCode(self, buff):
         name = self.params['name'].val
@@ -92,9 +93,6 @@ class MegTriggerComponent(BaseComponent):
 
 
     def writeRunOnceInitCode(self, buff):
-
-        if MegTriggerComponent.written_init_code: return
-
         code =  f'''
                 try:
                     from PyDAQmx import Task
@@ -139,7 +137,7 @@ class MegTriggerComponent(BaseComponent):
 
                 def int_to_binary(number):
                     # assert 0<=number<256, f'trigger value needs to be between 0 and 255, but {{number=}}'
-                    return bin(number)[2:].zfill(8)
+                    return np.array([x for x in bin(number)[2:].zfill(8)], dtype=np.uint8)
 
                 def send_trigger(value, duration=0, debug=False, debug_extras=None):
                     """send a trigger to the NI6321 device
@@ -154,8 +152,7 @@ class MegTriggerComponent(BaseComponent):
                         _send_trigger(0, debug)
 
               '''
-        self.writeBlockCode(buff, code)
-        MegTriggerComponent.written_init_code = True
+        self.writeBlockCode(buff, code, buff.writeOnceIndentedLines)
 
     def writeRoutineStartCode(self, buff):
         inits = getInitVals(self.params, "PsychoPy")
@@ -212,11 +209,8 @@ class MegTriggerComponent(BaseComponent):
 
 
     def writeExperimentEndCode(self, buff):
-        if MegTriggerComponent.written_end_code: return
-
         code="""
                 tpydaqmxtask.StopTask()
                 tpydaqmxtask.ClearTask()
              """
-        self.writeBlockCode(buff, code)
-        MegTriggerComponent.written_end_code = True
+        self.writeBlockCode(buff, code, buff.writeOnceIndentedLines)

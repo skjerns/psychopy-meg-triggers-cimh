@@ -8,8 +8,19 @@ Supports debug mode for trying stuff outside of the lab in absence of a NI6321.
 
 `pip install git+https://github.com/skjerns/cimh-psychopy-MEG`
 
+## Quickstart
 
-Anyhwere in the code you can also write `send_trigger(value, duration)` to manually send a trigger, e.g. `send_trigger(15, duration=0.005)` will raise the trigger line to 15 for 5 milliseconds, however, be aware that any script execution is paused for this duration. If you set `duration=0` the line will be kept at the trigger value and not be reset to 0.
+```Python
+import meg_triggers
+from meg_triggers import send_trigger
+...
+# send trigger value of 16 for 5 milliseconds
+send_trigger(16, 0.005)
+```
+
+If you want to debug your code or test it without having access to a NI6321 PCI card, the library will automatically default back to simpy printing out debug information about triggers that would have been sent.
+![image](https://github.com/skjerns/cimh-psychopy-MEG/assets/14980558/2804ad4f-1b7b-47f3-a4c1-add9e052c142)
+
 
 ## Usage
 

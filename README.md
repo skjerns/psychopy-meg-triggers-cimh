@@ -21,6 +21,9 @@ Anyhwere in the code you can also write `send_trigger(value, duration)` to manua
     - if you want to set the trigger channel to a value without returning to 0, use use `send_trigger(value=15, duration=0)`
 5. The trigger will be send non-blocking, i.e. the code will continue running while `duration` is waited
 
+
+- You can enable debug printing via `meg_triggers.enable_printin()`. This will print all sent triggers to the console.
+
 ## Bugs
 
 If you encounter any bugs, feel free to open an issue. The code has been tested and used in experiments, so it should theoretically work. However, there might be cases in which it doesn't, so let me know.

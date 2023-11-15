@@ -19,6 +19,7 @@ send_trigger(16, 0.005)
 ```
 
 If you want to debug your code or test it without having access to a NI6321 PCI card, the library will automatically default back to simpy printing out debug information about triggers that would have been sent.
+
 ![image](https://github.com/skjerns/cimh-psychopy-MEG/assets/14980558/2804ad4f-1b7b-47f3-a4c1-add9e052c142)
 
 

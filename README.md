@@ -14,10 +14,10 @@ Supports debug mode for trying stuff outside of the lab in absence of a NI6321.
 import meg_triggers
 from meg_triggers import send_trigger
 ...
-# send trigger value of 16 for 5 milliseconds
-# then reset the channel to value 0
+# set trigger channel to value 16 
+# then wait 5 ms and reset the channel to value 0
 # this happend non-blocking, i.e. execution of experiment continues
-send_trigger(16, 0.005)
+send_trigger(value=16, duration=0.005)
 ```
 
 If you want to debug your code or test it without having access to a NI6321 PCI card, the library will automatically default back to simpy printing out debug information about triggers that would have been sent.

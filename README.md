@@ -15,6 +15,8 @@ import meg_triggers
 from meg_triggers import send_trigger
 ...
 # send trigger value of 16 for 5 milliseconds
+# then reset the channel to value 0
+# this happend non-blocking, i.e. execution of experiment continues
 send_trigger(16, 0.005)
 ```
 

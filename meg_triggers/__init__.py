@@ -114,7 +114,7 @@ class _MEGTriggerThread(threading.Thread):
         tpydaqmxtask.ClearTask()
 
     def _send_trigger(self, value_bin):
-
+        
         tpydaqmxtask.WriteDigitalLines(1,1,10.0,PyDAQmx.DAQmx_Val_GroupByChannel,
                                        value_bin,None,None)
 
@@ -171,14 +171,7 @@ def send_trigger(value, duration=None, reset_value=None):
     :param duration:  send
     """
 
-    
-    if isinstance(value, int):
-        # convert to binary if necessary
-        value_bin = int_to_binary(value)
-    elif isinstance(value, (np.ndarray, tuple, list)):
-        assert (x:=len(value))==8, f'trigger value must be 8bit but is of len {x}'
-    else:
-        raise ValueError('trigger value must be array, tuple or list')
+
     assert _meg_trigger_thread.is_alive(), 'ERROR: trigger thread died. Please report this error!'
     
     if duration is None:
@@ -186,8 +179,28 @@ def send_trigger(value, duration=None, reset_value=None):
     
     if reset_value is None:
         reset_value = _meg_trigger_thread.default_reset_value
+        
+        
+    if isinstance(reset_value, int):
+        # convert to binary if necessary
+            reset_value_bin = int_to_binary(reset_value)
+    elif isinstance(value, (np.ndarray, tuple, list)):
+        assert (x:=len(value))==8, f'trigger value must be 8bit but is of len {x}'
+    else:
+        raise ValueError('trigger value must be array, tuple or list')
+        
+        
+    if isinstance(value, int):
+        # convert to binary if necessary
+            value_bin = int_to_binary(value)
+    elif isinstance(value, (np.ndarray, tuple, list)):
+        assert (x:=len(value))==8, f'trigger value must be 8bit but is of len {x}'
+    else:
+        raise ValueError('trigger value must be array, tuple or list')
     
-    _queue.put_nowait([value_bin, duration, reset_value])
+    
+    
+    _queue.put_nowait([value_bin, duration, reset_value_bin])
     
     if _meg_trigger_thread.verbose or ENABLE_DEBUG:
         msg = f'trigger channel = {value} @{core.getTime():.3f}s '

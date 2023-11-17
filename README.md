@@ -27,6 +27,9 @@ If you want to debug your code or test it without having access to a NI6321 PCI 
 
 ## Usage
 
+![image](https://github.com/skjerns/psychopy-meg-triggers-cimh/assets/14980558/d3917f05-a28f-404d-8f79-a7a5063e691b)
+
+
 1. Put a custom code component anywhere in your psychopy builder project
 2. within the code component add to the `Before experiment` section `import meg_triggers; from meg_triggers import send_trigger`
 3. Anywhere in the code, use `send_trigger(value=x, duration=y)` to send a trigger to the port
@@ -35,12 +38,15 @@ If you want to debug your code or test it without having access to a NI6321 PCI 
     - if you want to set the trigger channel to a value without returning to 0, use use `send_trigger(value=15, duration=0)`
 5. The trigger will be send non-blocking, i.e. the code will continue running while `duration` is waited
 
+![image](https://github.com/skjerns/psychopy-meg-triggers-cimh/assets/14980558/02771e5e-8f7a-4e73-aacf-ed67a04b880a)
+
+
 These are all the functions that are available:
 ```
 meg_triggers.send_trigger(value, duration=None, reset_value=None)   # set trigger channel to $value for $duration seconds, reset to $reset_value after that
-meg_triggers.set_default_duration(duration)  # set a default value for duration
+meg_triggers.set_default_duration(duration)  # set a default value for duration. Per default it is 0.005
 meg_triggers.set_default_reset_value(value)  # set the value the trigger channel returns to for neutral state
-meg_triggers.enable_printing()               # output all triggers to console as well
+meg_triggers.enable_printing()               # output all triggers to console as well, e.g. for debugging
 meg_triggers.disable_printing()              # don't output to console
 ```
 

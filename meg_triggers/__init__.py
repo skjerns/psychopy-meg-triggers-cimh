@@ -59,6 +59,12 @@ def int_to_binary(number):
     assert 0<=number<256, f'trigger value needs to be between 0 and 255, but {number=}'
     return np.array([x for x in bin(number)[2:].zfill(8)], dtype=np.uint8)
 
+def binary_to_int(number):
+    """convert number from int to 8 bit binary"""
+    assert 0<=number<256, f'trigger value needs to be between 0 and 255, but {number=}'
+    return np.array([x for x in bin(number)[2:].zfill(8)], dtype=np.uint8)
+
+
 class _MEGTriggerThread(threading.Thread):
     def __init__(self, q):
         super(_MEGTriggerThread,self).__init__(daemon=True)
@@ -67,7 +73,6 @@ class _MEGTriggerThread(threading.Thread):
         self.default_duration = None
         self.default_reset_value = 0
         self.verbose = False
-        return
 
     def kill(self):
         self.keep_running = False
@@ -76,9 +81,8 @@ class _MEGTriggerThread(threading.Thread):
     def run(self):
         self.connect()
         while self.keep_running:
-
             try:
-                res = self.q.get_nowait()
+                res = self.q.get(timeout=1)
             except Empty:
                 continue
 
@@ -87,9 +91,8 @@ class _MEGTriggerThread(threading.Thread):
                 self.disconnect()
                 break
             try:
-                value, duration = res
-                if value:
-                    self.send_trigger(value, duration)
+                value, duration, reset_value = res
+                self.send_trigger(value, duration, reset_value)
             except Exception as e:
                 _print(traceback.format_exc())
                 self.kill()
@@ -119,15 +122,11 @@ class _MEGTriggerThread(threading.Thread):
         start_time = time.perf_counter()
         self._send_trigger(value_bin)
 
-        if self.verbose or ENABLE_DEBUG:
-            msg = f'set trigger channel to {value_bin} @{core.getTime():.3f}s '
-            _print(msg)
-
         if duration is not None:
-            core.wait(duration)
+            time.sleep(duration)
             self._send_trigger(reset_value)
-            duration = time.perf_counter() - start_time
-            _print(f'reset trigger channel to 0, was active for {duration:.3f}s')
+            duration = int(np.round((time.perf_counter() - start_time)*1000))
+            _print(f'reset trigger channel, active ~{duration}ms')
 
 #########################
 
@@ -141,7 +140,10 @@ def _atexit():
     _queue.put('quit')
     _meg_trigger_thread.keep_running = False
     _meg_trigger_thread.disconnect()
-    _meg_trigger_thread.join(timeout=0.25)
+    try:
+        _meg_trigger_thread.join(timeout=0.25)
+    except:
+        pass
 
 def set_default_duration(duration):
     """set default duration that is used if no duration is indicated"""
@@ -149,7 +151,7 @@ def set_default_duration(duration):
         _print(f'default duration is set to {duration} seconds, seems a bit long?')
     _meg_trigger_thread.default_duration = duration
 
-def set_default_resetvalue(reset_value):
+def set_default_reset_value(reset_value):
     """this value is used to reset the channel to a specific value after 
     a call with duration>0"""
     _meg_trigger_thread.default_reset_value = reset_value
@@ -168,6 +170,8 @@ def send_trigger(value, duration=None, reset_value=None):
     :param value:     can be any int between 0 and 255
     :param duration:  send
     """
+
+    
     if isinstance(value, int):
         # convert to binary if necessary
         value_bin = int_to_binary(value)
@@ -181,6 +185,36 @@ def send_trigger(value, duration=None, reset_value=None):
         duration = _meg_trigger_thread.default_duration
     
     if reset_value is None:
-        duration = _meg_trigger_thread.default_reset_value
+        reset_value = _meg_trigger_thread.default_reset_value
     
     _queue.put_nowait([value_bin, duration, reset_value])
+    
+    if _meg_trigger_thread.verbose or ENABLE_DEBUG:
+        msg = f'trigger channel = {value} @{core.getTime():.3f}s '
+        _print(msg)
+        
+        
+        
+if __name__=='__main__':
+    
+    print('## SEND 5')
+    send_trigger(5)
+    
+    print('## SEND 5 FOR 0.005')
+    send_trigger(5, 0.005)
+    time.sleep(0.01)
+    
+    print('## SEND 5 FOR 0.005, RESET TO 10')
+    send_trigger(5, 0.005, 10)
+    time.sleep(0.01)
+    
+    print('## SEND 5 WITH DEFAULT 0.005')
+    set_default_duration(0.005)
+    send_trigger(5)
+    time.sleep(0.01)
+    
+    print('## SEND 5 WITH DEFAULT 0.005 RESET TO DEFAULT 10')
+    set_default_duration(0.005)
+    set_default_reset_value(10)
+    send_trigger(5)
+    time.sleep(0.01)

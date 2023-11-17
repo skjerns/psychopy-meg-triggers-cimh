@@ -69,7 +69,7 @@ class _MEGTriggerThread(threading.Thread):
         super(_MEGTriggerThread,self).__init__(daemon=True)
         self.q = q
         self.keep_running = True
-        self.default_duration = None
+        self.default_duration = 0.005
         self.default_reset_value = 0
         self.verbose = False
 

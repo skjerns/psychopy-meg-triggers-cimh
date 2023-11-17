@@ -1,4 +1,4 @@
-# cimh-psychopy-MEG
+# cimh-psychopy-meg
 
 Python module for interacting with NI6321 PCIe card to send triggers to a MEGIN TRIUX MEG.
 

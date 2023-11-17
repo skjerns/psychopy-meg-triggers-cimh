@@ -57,12 +57,11 @@ if ENABLE_DEBUG:
 def int_to_binary(number):
     """convert number from int to 8 bit binary"""
     assert 0<=number<256, f'trigger value needs to be between 0 and 255, but {number=}'
-    return np.array([x for x in bin(number)[2:].zfill(8)], dtype=np.uint8)
+    return np.array([x for x in bin(number)[2:].zfill(8)][::-1], dtype=np.uint8)
 
-def binary_to_int(number):
+def binary_to_int(array):
     """convert number from int to 8 bit binary"""
-    assert 0<=number<256, f'trigger value needs to be between 0 and 255, but {number=}'
-    return np.array([x for x in bin(number)[2:].zfill(8)], dtype=np.uint8)
+    return array.dot(2**np.arange(array.size))
 
 
 class _MEGTriggerThread(threading.Thread):
@@ -121,12 +120,16 @@ class _MEGTriggerThread(threading.Thread):
     def send_trigger(self, value_bin, duration=None, reset_value=None):
         start_time = time.perf_counter()
         self._send_trigger(value_bin)
-
+        if self.verbose or ENABLE_DEBUG:
+            value = binary_to_int(value_bin)
+            msg = f'trigger channel = {value} @{core.getTime():.3f}s '
+            _print(msg)
         if duration is not None:
             time.sleep(duration)
             self._send_trigger(reset_value)
             duration = int(np.round((time.perf_counter() - start_time)*1000))
-            _print(f'reset trigger channel, active ~{duration}ms')
+            if self.verbose or ENABLE_DEBUG:
+                _print(f'reset trigger channel, active ~{duration}ms')
 
 #########################
 
@@ -147,7 +150,7 @@ def _atexit():
 
 def set_default_duration(duration):
     """set default duration that is used if no duration is indicated"""
-    if duration>0.1: 
+    if (duration is not None) and duration>0.1: 
         _print(f'default duration is set to {duration} seconds, seems a bit long?')
     _meg_trigger_thread.default_duration = duration
 
@@ -198,13 +201,8 @@ def send_trigger(value, duration=None, reset_value=None):
     else:
         raise ValueError('trigger value must be array, tuple or list')
     
-    
-    
     _queue.put_nowait([value_bin, duration, reset_value_bin])
-    
-    if _meg_trigger_thread.verbose or ENABLE_DEBUG:
-        msg = f'trigger channel = {value} @{core.getTime():.3f}s '
-        _print(msg)
+
         
         
         
@@ -231,3 +229,10 @@ if __name__=='__main__':
     set_default_reset_value(10)
     send_trigger(5)
     time.sleep(0.01)
+    
+    for i in range(255):
+        set_default_duration(None)
+        set_default_reset_value(0)
+        send_trigger(i, duration=None)
+        time.sleep(0.01)
+

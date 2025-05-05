@@ -13,8 +13,9 @@ try:
     from psychopy import core
     curr_exp_time = lambda: core.getTime()
 except (ModuleNotFoundError, ImportError):
-    print('psychopy not installed, will debug print current time instead of experiment time.')
-    curr_exp_time = lambda: time.time()
+    print('psychopy not installed, will debug print elapsed time since import instead of experiment time.')
+    import_time = time.time()
+    curr_exp_time = lambda: time.time() - import_time
 
 
 def _print(*args, **kwargs):

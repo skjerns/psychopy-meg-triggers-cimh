@@ -8,7 +8,13 @@ import traceback
 from queue import Empty, Queue
 
 import numpy as np
-from psychopy import core
+
+try:
+    from psychopy import core
+    curr_exp_time = lambda: core.getTime()
+except (ModuleNotFoundError, ImportError):
+    print('psychopy not installed, will debug print current time instead of experiment time.')
+    curr_exp_time = lambda: time.time()
 
 
 def _print(*args, **kwargs):
@@ -113,7 +119,7 @@ class _MEGTriggerThread(threading.Thread):
         tpydaqmxtask.ClearTask()
 
     def _send_trigger(self, value_bin):
-        
+
         tpydaqmxtask.WriteDigitalLines(1,1,10.0,PyDAQmx.DAQmx_Val_GroupByChannel,
                                        value_bin,None,None)
 
@@ -122,7 +128,7 @@ class _MEGTriggerThread(threading.Thread):
         self._send_trigger(value_bin)
         if self.verbose or ENABLE_DEBUG:
             value = binary_to_int(value_bin)
-            msg = f'trigger channel = {value} @{core.getTime():.3f}s '
+            msg = f'trigger channel = {value} @{curr_exp_time():.3f}s '
             _print(msg)
         if duration is not None:
             time.sleep(duration)
@@ -150,12 +156,12 @@ def _atexit():
 
 def set_default_duration(duration):
     """set default duration that is used if no duration is indicated"""
-    if (duration is not None) and duration>0.1: 
+    if (duration is not None) and duration>0.1:
         _print(f'default duration is set to {duration} seconds, seems a bit long?')
     _meg_trigger_thread.default_duration = duration
 
 def set_default_reset_value(reset_value):
-    """this value is used to reset the channel to a specific value after 
+    """this value is used to reset the channel to a specific value after
     a call with duration>0"""
     _meg_trigger_thread.default_reset_value = reset_value
 
@@ -176,14 +182,14 @@ def send_trigger(value, duration=None, reset_value=None):
 
 
     assert _meg_trigger_thread.is_alive(), 'ERROR: trigger thread died. Please report this error!'
-    
+
     if duration is None:
         duration = _meg_trigger_thread.default_duration
-    
+
     if reset_value is None:
         reset_value = _meg_trigger_thread.default_reset_value
-        
-        
+
+
     if isinstance(reset_value, int):
         # convert to binary if necessary
             reset_value_bin = int_to_binary(reset_value)
@@ -191,8 +197,8 @@ def send_trigger(value, duration=None, reset_value=None):
         assert (x:=len(value))==8, f'trigger value must be 8bit but is of len {x}'
     else:
         raise ValueError('trigger value must be array, tuple or list')
-        
-        
+
+
     if isinstance(value, int):
         # convert to binary if necessary
             value_bin = int_to_binary(value)
@@ -200,39 +206,38 @@ def send_trigger(value, duration=None, reset_value=None):
         assert (x:=len(value))==8, f'trigger value must be 8bit but is of len {x}'
     else:
         raise ValueError('trigger value must be array, tuple or list')
-    
+
     _queue.put_nowait([value_bin, duration, reset_value_bin])
 
-        
-        
-        
+
+
+
 if __name__=='__main__':
-    
+
     print('## SEND 5')
     send_trigger(5)
-    
+
     print('## SEND 5 FOR 0.005')
     send_trigger(5, 0.005)
     time.sleep(0.01)
-    
+
     print('## SEND 5 FOR 0.005, RESET TO 10')
     send_trigger(5, 0.005, 10)
     time.sleep(0.01)
-    
+
     print('## SEND 5 WITH DEFAULT 0.005')
     set_default_duration(0.005)
     send_trigger(5)
     time.sleep(0.01)
-    
+
     print('## SEND 5 WITH DEFAULT 0.005 RESET TO DEFAULT 10')
     set_default_duration(0.005)
     set_default_reset_value(10)
     send_trigger(5)
     time.sleep(0.01)
-    
+
     for i in range(255):
         set_default_duration(None)
         set_default_reset_value(0)
         send_trigger(i, duration=None)
         time.sleep(0.01)
-
